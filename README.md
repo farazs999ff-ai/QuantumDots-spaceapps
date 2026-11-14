@@ -4,30 +4,30 @@
 
 # Quantum Dots in Projection
 
-Interactive 3D optical spectroscopy simulation that couples quantum-dot confinement physics with Doppler-shifted exoplanet atmospheric transmission spectra.
+An interactive 3D optical spectroscopy simulation that connects quantum-dot confinement physics with Doppler-shifted exoplanet atmospheric transmission spectra.
 
-This project presents a research-driven concept for using tunable colloidal quantum dots as compact, wavelength-adjustable optical components for space-based spectroscopy, remote sensing, and high-efficiency optical projection.
+This project explores the idea of using tunable colloidal quantum dots as compact, wavelength-adjustable optical components for space-based spectroscopy, remote sensing, and next-generation optical projection systems.
 
 ## Overview
 
-Quantum Dots in Projection explores how semiconductor nanocrystals can be engineered to:
+Quantum Dots in Projection demonstrates how semiconductor nanocrystals can be engineered to:
 
-- tune emission and absorption bands by changing nanocrystal radius and shell composition
-- reduce bulky fixed filter-wheel hardware in space instruments
-- improve spectral calibration for exoplanet atmospheric detection
+- tune absorption and emission across the visible and near-infrared bands
+- reduce dependence on bulky fixed filter wheels and dichroic stacks in space instruments
+- improve calibration for atmospheric spectroscopy and exoplanet detection
 - model resonance between quantum-dot emission and atmospheric absorption features
-- visualize the physics in an interactive 3D lab interface
+- visualize the science through an interactive 3D simulation environment
 
-## Key features
+## Key Features
 
-- Interactive 3D laboratory visualization of quantum-dot confinement behavior
-- Tunable spectral range from visible to near-infrared regions
-- Doppler-shifted exoplanet atmospheric transmission modeling
-- Research-backed equations for Brus confinement and spectral resonance
-- Responsive presentation-style landing page and research narrative
+- 3D interactive laboratory visualization of quantum-dot behavior
+- Real-time tunable core radius and spectral response controls
+- Doppler-shifted exoplanet transmission analysis
+- Research-informed equations for quantum confinement and resonance matching
+- Responsive presentation-style UI for technical storytelling
 - Built with React, Vite, TypeScript, Tailwind CSS, and Three.js
 
-## Tech stack
+## Tech Stack
 
 - React 19
 - Vite
@@ -37,7 +37,7 @@ Quantum Dots in Projection explores how semiconductor nanocrystals can be engine
 - Google GenAI SDK
 - Lucide React
 
-## Project structure
+## Project Structure
 
 ```text
 .
@@ -53,14 +53,16 @@ Quantum Dots in Projection explores how semiconductor nanocrystals can be engine
 ├── index.html
 ├── metadata.json
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
 ├── vite.config.ts
 ├── .gitignore
 ├── README.md
-└── package-lock.json
+├── bun.lock
+└── .env.local.example
 ```
 
-## Local development
+## Local Development
 
 ### Prerequisites
 
@@ -68,13 +70,13 @@ Quantum Dots in Projection explores how semiconductor nanocrystals can be engine
 - npm
 - A Gemini API key from Google AI Studio
 
-### Install dependencies
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
-### Configure environment
+### Configure Environment
 
 Create a `.env.local` file in the project root and add your Gemini API key:
 
@@ -82,51 +84,47 @@ Create a `.env.local` file in the project root and add your Gemini API key:
 GEMINI_API_KEY=your_api_key_here
 ```
 
-### Run the app
+### Run the App
 
 ```bash
 npm run dev
 ```
 
-Then open the local URL shown by Vite, typically:
+Then open the local Vite URL shown in the terminal, typically:
 
 ```text
 http://localhost:3000
 ```
 
-### Production build
+### Production Build
 
 ```bash
 npm run build
 ```
 
-### Preview production build
+### Preview Production Build
 
 ```bash
 npm run preview
 ```
 
-## Research concept
+## Research Concept
 
-The project models the relationship between:
+The system models the relationship between:
 
 - nanocrystal core radius and bandgap energy
 - exciton confinement and quantum yield
 - emission wavelength and atmospheric absorption overlap
-- radial Doppler shift and detected exoplanet spectral signatures
+- radial Doppler shift and exoplanet spectral signatures
 
-This enables a visually rich educational and technical prototype for demonstrating how quantum-dot-based optical systems could support next-generation space instrumentation.
+This creates a visually rich educational and technical prototype to demonstrate how quantum-dot-based optical systems could support next-generation space instrumentation.
 
 ## Credits
 
 - Researcher: Abid Ali Leghari
 - Web Developers: Gulfaraz Ahmed and Niaz Hussain
 
-## License
-
-This project is for research and demonstration purposes.
-
-## Related links
+## Related Links
 
 - AI Studio app: https://ai.studio/apps/cf791551-e01d-4f06-8fcb-b717473f3dde
-- Project title: Quantum Dots in Projection
+- Project name: Quantum Dots in Projection
