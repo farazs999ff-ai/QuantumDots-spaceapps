@@ -1,0 +1,6 @@
+{
+  "name": "Quantum Dots in Projection",
+  "description": "Interactive 3D optical spectroscopy simulation coupling colloidal core-shell quantum dot confinement physics with Doppler-shifted exoplanet atmospheric transmission spectra.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

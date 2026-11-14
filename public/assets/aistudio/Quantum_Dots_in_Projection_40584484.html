@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Dots in Projection</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Configuration for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: '#050b14',
+                        panel: 'rgba(13, 22, 38, 0.65)',
+                        'panel-border': 'rgba(64, 112, 194, 0.3)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #e2e8f0;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 1024px) {
+            #ui-layer {
+                flex-direction: row;
+            }
+        }
+
+        .glass-panel {
+            pointer-events: auto;
+            background: rgba(10, 15, 30, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(100, 180, 255, 0.2);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(100, 180, 255, 0.05);
+            width: 100%;
+            max-width: 420px;
+            max-height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        /* Scrollbar customization */
+        .glass-panel::-webkit-scrollbar { width: 6px; }
+        .glass-panel::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .glass-panel::-webkit-scrollbar-thumb { background: rgba(100,180,255,0.3); border-radius: 10px; }
+        .glass-panel::-webkit-scrollbar-thumb:hover { background: rgba(100,180,255,0.5); }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.8), inset 0 0 5px rgba(255,255,255,0.5);
+            border: 2px solid #fff;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+
+        /* Spectrometer visualization */
+        #spectrum-bar {
+            width: 100%;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(to right, 
+                #200040 0%,   /* UV */
+                #4b0082 10%,  /* Violet ~400nm */
+                #0000ff 25%,  /* Blue ~450nm */
+                #00ff00 45%,  /* Green ~550nm */
+                #ffff00 60%,  /* Yellow ~580nm */
+                #ff7f00 70%,  /* Orange ~600nm */
+                #ff0000 85%,  /* Red ~700nm */
+                #400000 100%  /* IR */
+            );
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .spectral-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 5px #fff;
+            transform: translateX(-50%);
+            transition: left 0.2s ease-out;
+        }
+
+        #qd-marker {
+            position: absolute;
+            top: -5px;
+            bottom: -5px;
+            width: 5px;
+            background-color: white;
+            border-radius: 2px;
+            box-shadow: 0 0 15px white, 0 0 5px black inset;
+            transform: translateX(-50%);
+            transition: left 0.1s ease-out;
+            z-index: 5;
+        }
+
+        .gas-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 10px;
+            color: #94a3b8;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            transition: left 0.2s ease-out;
+        }
+
+        .highlight-glow {
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(74, 222, 128, 0.5); border-color: rgba(74, 222, 128, 0.3); }
+            100% { box-shadow: 0 0 25px rgba(74, 222, 128, 0.9); border-color: rgba(74, 222, 128, 0.8); }
+        }
+
+        .nasa-badge {
+            background: linear-gradient(135deg, #0b3d91 0%, #1e3a8a 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            display: inline-block;
+            border: 1px solid #3b82f6;
+        }
+    </style>
+
+    <!-- Import maps polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    
+    <!-- Three.js Setup via Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- 3D Environment -->
+    <div id="canvas-container"></div>
+
+    <!-- Interface -->
+    <div id="ui-layer">
+        
+        <!-- Left Panel: Quantum Dot Controls -->
+        <div class="glass-panel">
+            <div>
+                <div class="flex justify-between items-start mb-2">
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-200">
+                        QD-Sensor Config
+                    </h1>
+                    <span class="nasa-badge">SPACE APPS</span>
+                </div>
+                <p class="text-xs text-blue-200/70">Nanoscale Quantum Confinement Tuning</p>
+            </div>
+
+            <!-- Controls -->
+            <div class="space-y-5 bg-black/40 p-4 rounded-xl border border-white/5">
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-gray-300">Particle Radius (R)</label>
+                        <span id="radius-val" class="text-sm font-mono text-blue-400">3.50 nm</span>
+                    </div>
+                    <input type="range" id="radius-slider" min="1.0" max="6.0" step="0.05" value="3.5">
+                    <p class="text-[10px] text-gray-400 mt-2">Adjusting size alters the bandgap via physical electron confinement.</p>
+                </div>
+
+                <div class="pt-4 border-t border-white/10">
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-gray-300">Excitation Energy</label>
+                        <span id="excitation-val" class="text-sm font-mono text-purple-400">3.00 eV</span>
+                    </div>
+                    <input type="range" id="excitation-slider" min="1.0" max="5.0" step="0.1" value="3.0">
+                    <p class="text-[10px] text-gray-400 mt-2">Energy supplied to the system. Must exceed Bandgap.</p>
+                </div>
+            </div>
+
+            <!-- Quantum Metrics -->
+            <div class="bg-blue-900/20 p-4 rounded-xl border border-blue-500/20">
+                <h3 class="text-[11px] font-bold uppercase tracking-widest text-blue-400 mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Sensor Output Metrics
+                </h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <span class="text-sm text-gray-300">Effective Bandgap</span>
+                        <span id="bandgap-val" class="text-lg font-mono text-white">0.00 eV</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-sm text-gray-300">Emitted Wavelength</span>
+                        <div class="text-right">
+                            <span id="wavelength-val" class="text-2xl font-mono font-bold leading-none block">0 nm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="emission-status" class="mt-4 text-center py-2 rounded bg-gray-800 border border-gray-600">
+                    <span class="text-xs font-bold uppercase tracking-widest" id="status-text">Analyzing...</span>
+                </div>
+            </div>
+            
+            <div class="text-xs text-gray-500 mt-auto text-center">
+                Interact with the 3D scene using mouse/touch to rotate and zoom.
+            </div>
+        </div>
+
+        <!-- Right Panel: Planetary Spectrometer -->
+        <div class="glass-panel mt-4 lg:mt-0">
+            <div>
+                <h2 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200 mb-1">
+                    Planetary Spectrometer
+                </h2>
+                <p class="text-xs text-teal-200/70">Remote Exoplanet Atmosphere Analysis</p>
+            </div>
+
+            <div class="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
+                <p class="text-sm text-gray-300 leading-relaxed">
+                    Use the Quantum Dot as an optical sensor. Tune its wavelength to match target absorption lines.
+                </p>
+                
+                <!-- Target Physics Controls -->
+                <div class="pt-2">
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-emerald-400">Target Redshift (Velocity)</label>
+                        <span id="redshift-val" class="text-sm font-mono text-emerald-200">z = 0.00</span>
+                    </div>
+                    <input type="range" id="redshift-slider" min="0.0" max="0.3" step="0.01" value="0.0">
+                    <p class="text-[10px] text-gray-400 mt-2">Simulates relative velocity, shifting target spectral lines to longer wavelengths (Doppler Effect).</p>
+                </div>
+            </div>
+
+            <!-- Spectral Visualization -->
+            <div class="bg-gray-900/60 p-4 rounded-xl border border-gray-700 relative mt-2">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 text-center">Visible Spectrum (380nm - 750nm)</h3>
+                
+                <div id="spectrum-bar" class="mb-6">
+                    <div id="qd-marker" title="Sensor Tuning"></div>
+                    <!-- Spectral lines injected via JS -->
+                </div>
+                <div class="relative h-4 w-full">
+                    <!-- Labels injected via JS -->
+                </div>
+
+                <!-- Detection Alert -->
+                <div id="detection-alert" class="mt-8 p-3 rounded-lg border border-gray-600 bg-gray-800/50 text-center transition-colors duration-300">
+                    <span class="text-sm font-bold text-gray-400 block mb-1">Target Resonance Status</span>
+                    <span id="detected-gas" class="text-lg font-mono text-white">NO SIGNAL DETECTED</span>
+                    <p id="detection-details" class="text-xs text-gray-400 mt-1 h-4"></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Logic (Three.js + Physics Simulation) -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ==========================================
+        // 1. PHYSICS & SIMULATION CONSTANTS
+        // ==========================================
+        
+        // Simplified Quantum Confinement for a generic semiconductor (e.g., modified CdSe)
+        const E_BULK = 1.35; // Base bandgap in eV
+        const C_FACTOR = 4.2; // Aggregated confinement constant (eV * nm^2)
+
+        // Atmospheric Absorption Lines (Rest Wavelengths in nm)
+        // Chosen specifically within visible/near-visible range for the demo
+        const ATMOSPHERE_GASES = [
+            { id: 'fe', name: 'Iron (Fe)', restWl: 430, color: '#60a5fa' },
+            { id: 'hbeta', name: 'Hydrogen-β', restWl: 486, color: '#34d399' },
+            { id: 'na', name: 'Sodium (Na)', restWl: 589, color: '#fbbf24' },
+            { id: 'halpha', name: 'Hydrogen-α', restWl: 656, color: '#f87171' },
+            { id: 'o2', name: 'Oxygen (O2)', restWl: 760, color: '#ef4444' } // Slightly outside standard visible, but achievable with redshift/tuning
+        ];
+
+        const MIN_WL = 380;
+        const MAX_WL = 780;
+
+        // State Variables
+        const state = {
+            radius: 3.5,
+            excitation: 3.0,
+            redshift: 0.0,
+            bandgap: 0,
+            wavelength: 0,
+            isEmitting: false,
+            colorData: null,
+            detectedGas: null
+        };
+
+        // ==========================================
+        // 2. DOM ELEMENTS
+        // ==========================================
+        
+        const ui = {
+            radius: document.getElementById('radius-slider'),
+            radiusVal: document.getElementById('radius-val'),
+            excitation: document.getElementById('excitation-slider'),
+            excitationVal: document.getElementById('excitation-val'),
+            redshift: document.getElementById('redshift-slider'),
+            redshiftVal: document.getElementById('redshift-val'),
+            bandgapVal: document.getElementById('bandgap-val'),
+            wavelengthVal: document.getElementById('wavelength-val'),
+            statusBox: document.getElementById('emission-status'),
+            statusText: document.getElementById('status-text'),
+            spectrumBar: document.getElementById('spectrum-bar'),
+            qdMarker: document.getElementById('qd-marker'),
+            detectAlert: document.getElementById('detection-alert'),
+            detectGas: document.getElementById('detected-gas'),
+            detectDetails: document.getElementById('detection-details')
+        };
+
+        // Initialize Spectral Lines on UI
+        const gasElements = {};
+        ATMOSPHERE_GASES.forEach(gas => {
+            // Create line
+            const line = document.createElement('div');
+            line.className = 'spectral-line';
+            line.style.boxShadow = `0 0 5px ${gas.color}`;
+            ui.spectrumBar.appendChild(line);
+            
+            // Create label below
+            const labelContainer = ui.spectrumBar.nextElementSibling;
+            const label = document.createElement('div');
+            label.className = 'gas-label';
+            label.innerText = gas.name;
+            labelContainer.appendChild(label);
+
+            gasElements[gas.id] = { line, label, data: gas };
+        });
+
+        // ==========================================
+        // 3. THREE.JS SETUP
+        // ==========================================
+        
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x02050a);
+        scene.fog = new THREE.FogExp2(0x02050a, 0.015);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 25); // Set initial camera to show both QD and planet
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        // Restrict angles for better UI viewing
+        controls.minDistance = 5;
+        controls.maxDistance = 50;
+
+        // Post-Processing (Unreal Bloom)
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2.0, 0.4, 0.1);
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // ==========================================
+        // 4. 3D SCENE OBJECTS
+        // ==========================================
+
+        // A. Starfield Background
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 1500;
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 200;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({size: 0.2, color: 0xffffff, transparent: true, opacity: 0.6});
+        const starMesh = new THREE.Points(starsGeo, starsMat);
+        scene.add(starMesh);
+
+        // B. Quantum Dot (Foreground Center)
+        const qdGroup = new THREE.Group();
+        qdGroup.position.set(-6, 0, 0); // Offset to left for UI
+        scene.add(qdGroup);
+
+        // Core
+        const coreGeo = new THREE.IcosahedronGeometry(1.5, 32);
+        const coreMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff, emissive: 0x000000, roughness: 0.1, metalness: 0.8
+        });
+        const qdCore = new THREE.Mesh(coreGeo, coreMat);
+        qdGroup.add(qdCore);
+
+        // Glow Shell
+        const shellGeo = new THREE.IcosahedronGeometry(1.8, 32);
+        const shellMat = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff, emissive: 0x000000, transparent: true, opacity: 0.3,
+            transmission: 0.9, roughness: 0.2, ior: 1.5, side: THREE.DoubleSide
+        });
+        const qdShell = new THREE.Mesh(shellGeo, shellMat);
+        qdGroup.add(qdShell);
+
+        // Electron Cloud Particles
+        const elecCount = 500;
+        const elecGeo = new THREE.BufferGeometry();
+        const elecPos = new Float32Array(elecCount * 3);
+        const elecPhases = new Float32Array(elecCount);
+        for(let i=0; i < elecCount; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            const r = 2.0 + Math.random() * 1.5;
+            elecPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            elecPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+            elecPos[i*3+2] = r * Math.cos(phi);
+            elecPhases[i] = Math.random() * Math.PI * 2;
+        }
+        elecGeo.setAttribute('position', new THREE.BufferAttribute(elecPos, 3));
+        elecGeo.setAttribute('phase', new THREE.BufferAttribute(elecPhases, 1));
+        const elecMat = new THREE.PointsMaterial({
+            size: 0.1, color: 0xffffff, transparent: true, opacity: 0.5,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const qdElectrons = new THREE.Points(elecGeo, elecMat);
+        qdGroup.add(qdElectrons);
+
+        // QD Light
+        const qdLight = new THREE.PointLight(0xffffff, 0, 30);
+        qdGroup.add(qdLight);
+
+        // C. Target Exoplanet (Background Right)
+        const planetGroup = new THREE.Group();
+        planetGroup.position.set(12, 2, -15);
+        scene.add(planetGroup);
+
+        const planetGeo = new THREE.SphereGeometry(4, 64, 64);
+        // Base dark planet
+        const planetMat = new THREE.MeshStandardMaterial({
+            color: 0x111122, roughness: 0.9, metalness: 0.1,
+            wireframe: true, transparent: true, opacity: 0.15
+        });
+        const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+        planetGroup.add(planetMesh);
+        
+        // Atmosphere overlay (reacts to detection)
+        const atmosMat = new THREE.MeshPhongMaterial({
+            color: 0x000000, transparent: true, opacity: 0.0,
+            blending: THREE.AdditiveBlending, side: THREE.BackSide
+        });
+        const atmosMesh = new THREE.Mesh(new THREE.SphereGeometry(4.3, 64, 64), atmosMat);
+        planetGroup.add(atmosMesh);
+
+        // Scan Ring
+        const ringGeo = new THREE.TorusGeometry(5, 0.05, 16, 100);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+        const scanRing = new THREE.Mesh(ringGeo, ringMat);
+        scanRing.rotation.x = Math.PI / 2;
+        planetGroup.add(scanRing);
+
+        // Ambient Light
+        scene.add(new THREE.AmbientLight(0x111111));
+
+        // Setup layout based on screen width
+        function adjustLayout() {
+            if (window.innerWidth < 1024) {
+                qdGroup.position.set(0, 5, 0);
+                planetGroup.position.set(0, -15, -20);
+            } else {
+                qdGroup.position.set(-6, 0, 0);
+                planetGroup.position.set(12, 2, -15);
+            }
+        }
+        adjustLayout();
+
+        // ==========================================
+        // 5. HELPER FUNCTIONS
+        // ==========================================
+        
+        function wavelengthToColorInfo(wl) {
+            let r, g, b;
+            if (wl >= 380 && wl < 440) {
+                r = -(wl - 440) / (440 - 380); g = 0.0; b = 1.0;
+            } else if (wl >= 440 && wl < 490) {
+                r = 0.0; g = (wl - 440) / (490 - 440); b = 1.0;
+            } else if (wl >= 490 && wl < 510) {
+                r = 0.0; g = 1.0; b = -(wl - 510) / (510 - 490);
+            } else if (wl >= 510 && wl < 580) {
+                r = (wl - 510) / (580 - 510); g = 1.0; b = 0.0;
+            } else if (wl >= 580 && wl < 645) {
+                r = 1.0; g = -(wl - 645) / (645 - 580); b = 0.0;
+            } else if (wl >= 645 && wl <= 780) {
+                r = 1.0; g = 0.0; b = 0.0;
+            } else {
+                // Out of bounds - faint IR or UV representation
+                return { r:0.2, g:0, b:0.2, hex: 0x330033, css: 'rgb(51,0,51)' }; 
+            }
+
+            let factor = 1.0;
+            if (wl >= 380 && wl < 420) factor = 0.3 + 0.7*(wl - 380)/(420 - 380);
+            else if (wl >= 700 && wl <= 780) factor = 0.3 + 0.7*(780 - wl)/(780 - 700);
+
+            const R = Math.round(r * factor * 255);
+            const G = Math.round(g * factor * 255);
+            const B = Math.round(b * factor * 255);
+            
+            return { r, g, b, hex: (R << 16) | (G << 8) | B, css: `rgb(${R},${G},${B})` };
+        }
+
+        // Map wavelength to percentage for the UI bar
+        function getWlPercentage(wl) {
+            const clampWl = Math.max(MIN_WL, Math.min(MAX_WL, wl));
+            return ((clampWl - MIN_WL) / (MAX_WL - MIN_WL)) * 100;
+        }
+
+        // ==========================================
+        // 6. MAIN SIMULATION UPDATE
+        // ==========================================
+        
+        function updateSimulation() {
+            state.radius = parseFloat(ui.radius.value);
+            state.excitation = parseFloat(ui.excitation.value);
+            state.redshift = parseFloat(ui.redshift.value);
+
+            // Calculate Quantum Physics
+            state.bandgap = E_BULK + (C_FACTOR / Math.pow(state.radius, 2));
+            state.wavelength = 1240 / state.bandgap; // nm
+            state.isEmitting = state.excitation >= state.bandgap;
+            state.colorData = wavelengthToColorInfo(state.wavelength);
+
+            // Update Basic UI
+            ui.radiusVal.innerText = `${state.radius.toFixed(2)} nm`;
+            ui.excitationVal.innerText = `${state.excitation.toFixed(2)} eV`;
+            ui.redshiftVal.innerText = `z = ${state.redshift.toFixed(2)}`;
+            ui.bandgapVal.innerText = `${state.bandgap.toFixed(2)} eV`;
+            
+            // Format Wavelength display
+            if(state.isEmitting) {
+                ui.wavelengthVal.innerText = `${Math.round(state.wavelength)} nm`;
+                ui.wavelengthVal.style.color = state.colorData.css;
+                
+                ui.statusBox.className = "mt-4 text-center py-2 rounded bg-green-900/40 border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]";
+                ui.statusText.innerText = "SENSOR ACTIVE: EMITTING";
+                ui.statusText.className = "text-xs font-bold uppercase tracking-widest text-green-400";
+            } else {
+                ui.wavelengthVal.innerText = `-- nm`;
+                ui.wavelengthVal.style.color = '#4b5563';
+                
+                ui.statusBox.className = "mt-4 text-center py-2 rounded bg-red-900/40 border border-red-500/50";
+                ui.statusText.innerText = "INSUFFICIENT EXCITATION ENERGY";
+                ui.statusText.className = "text-xs font-bold uppercase tracking-widest text-red-400";
+            }
+
+            // Update Spectrometer UI
+            // 1. Move QD Marker
+            if(state.isEmitting && state.wavelength >= MIN_WL && state.wavelength <= MAX_WL) {
+                ui.qdMarker.style.display = 'block';
+                ui.qdMarker.style.left = `${getWlPercentage(state.wavelength)}%`;
+                ui.qdMarker.style.backgroundColor = state.colorData.css;
+                ui.qdMarker.style.boxShadow = `0 0 15px ${state.colorData.css}`;
+            } else {
+                ui.qdMarker.style.display = 'none';
+            }
+
+            // 2. Move Target Atmospheric Lines (Apply Redshift)
+            state.detectedGas = null;
+            let detectionThreshold = 10; // +/- nm to trigger detection
+
+            for(const key in gasElements) {
+                const el = gasElements[key];
+                const shiftedWl = el.data.restWl * (1 + state.redshift);
+                
+                if (shiftedWl >= MIN_WL && shiftedWl <= MAX_WL) {
+                    el.line.style.display = 'block';
+                    el.label.style.display = 'block';
+                    const pct = getWlPercentage(shiftedWl);
+                    el.line.style.left = `${pct}%`;
+                    el.label.style.left = `${pct}%`;
+
+                    // Check for resonance / detection
+                    if(state.isEmitting && Math.abs(state.wavelength - shiftedWl) <= detectionThreshold) {
+                        state.detectedGas = el.data;
+                        // Visual bump for the matched line
+                        el.line.style.width = '5px';
+                        el.line.style.backgroundColor = '#fff';
+                        el.label.style.color = '#fff';
+                        el.label.style.fontWeight = 'bold';
+                    } else {
+                        el.line.style.width = '2px';
+                        el.line.style.backgroundColor = 'rgba(255,255,255,0.5)';
+                        el.label.style.color = '#94a3b8';
+                        el.label.style.fontWeight = 'normal';
+                    }
+                } else {
+                    el.line.style.display = 'none';
+                    el.label.style.display = 'none';
+                }
+            }
+
+            // 3. Update Alert Box
+            if(state.detectedGas) {
+                ui.detectAlert.className = "mt-8 p-3 rounded-lg border highlight-glow bg-emerald-900/30 text-center transition-colors duration-300";
+                ui.detectGas.innerText = `${state.detectedGas.name} SIGNATURE DETECTED`;
+                ui.detectGas.style.color = '#34d399';
+                ui.detectDetails.innerText = `Resonance established at ${Math.round(state.wavelength)}nm (Redshifted from ${state.detectedGas.restWl}nm)`;
+            } else {
+                ui.detectAlert.className = "mt-8 p-3 rounded-lg border border-gray-600 bg-gray-800/50 text-center transition-colors duration-300";
+                ui.detectGas.innerText = "NO SIGNAL DETECTED";
+                ui.detectGas.style.color = '#9ca3af';
+                ui.detectDetails.innerText = "Tune QD radius to match shifted target lines";
+            }
+
+            // Update 3D Visuals
+            updateThreeJSVisuals();
+        }
+
+        function updateThreeJSVisuals() {
+            if(state.isEmitting) {
+                // Update Color
+                const col = new THREE.Color(state.colorData.hex);
+                
+                // Core glow
+                coreMat.emissive.copy(col);
+                coreMat.emissiveIntensity = 2.0;
+                
+                // Shell / Electrons
+                shellMat.color.copy(col);
+                elecMat.color.copy(col);
+                elecMat.opacity = 0.8;
+
+                // Lights
+                qdLight.color.copy(col);
+                qdLight.intensity = 5;
+
+                // Intensity changes with confinement (smaller = brighter for demo logic)
+                bloomPass.strength = 1.5 + (3.0 / state.radius);
+            } else {
+                // Off state
+                coreMat.emissive.setHex(0x111111);
+                coreMat.emissiveIntensity = 0.2;
+                shellMat.color.setHex(0x333333);
+                elecMat.color.setHex(0x555555);
+                elecMat.opacity = 0.2;
+                qdLight.intensity = 0;
+                bloomPass.strength = 0.2;
+            }
+
+            // Scale QD Physical Size visually (Mapping 1.0-6.0nm to scene scale)
+            const visualScale = 0.4 + (state.radius / 5.0);
+            qdGroup.scale.set(visualScale, visualScale, visualScale);
+
+            // Update Target Planet based on detection
+            if(state.detectedGas) {
+                const detCol = new THREE.Color(state.colorData.hex);
+                atmosMat.color.copy(detCol);
+                atmosMat.opacity = 0.4;
+                
+                ringMat.color.copy(detCol);
+                ringMat.opacity = 0.6;
+            } else {
+                atmosMat.opacity = 0.0;
+                ringMat.opacity = 0.0;
+            }
+        }
+
+        // ==========================================
+        // 7. EVENT LISTENERS & LOOP
+        // ==========================================
+
+        ui.radius.addEventListener('input', updateSimulation);
+        ui.excitation.addEventListener('input', updateSimulation);
+        ui.redshift.addEventListener('input', updateSimulation);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            adjustLayout();
+        }, false);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // Rotate QD
+            qdGroup.rotation.y += 0.005;
+            qdGroup.rotation.x += 0.002;
+            
+            if(state.isEmitting) {
+                // Pulse Shell
+                const pulse = 1.0 + 0.03 * Math.sin(time * 6.0);
+                qdShell.scale.set(pulse, pulse, pulse);
+            }
+
+            // Move Electrons
+            const pos = qdElectrons.geometry.attributes.position.array;
+            const phases = qdElectrons.geometry.attributes.phase.array;
+            for(let i=0; i<elecCount; i++) {
+                // Wiggle factor
+                pos[i*3+1] += Math.sin(time * 3.0 + phases[i]) * 0.01;
+            }
+            qdElectrons.geometry.attributes.position.needsUpdate = true;
+
+            // Animate Planet & Scanner
+            planetMesh.rotation.y += 0.001;
+            if(state.detectedGas) {
+                scanRing.scale.setScalar(1.0 + 0.2 * Math.sin(time * 4.0));
+                atmosMesh.material.opacity = 0.3 + 0.1 * Math.sin(time * 5.0);
+            }
+
+            controls.update();
+            composer.render();
+        }
+
+        // Boot up
+        updateSimulation();
+        animate();
+
+    </script>
+</body>
+</html>
