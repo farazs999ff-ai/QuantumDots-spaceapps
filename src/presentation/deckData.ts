@@ -42,37 +42,37 @@ export interface PresentationSlide {
 export const PRESENTERS: PresenterProfile[] = [
   {
     id: 1,
-    defaultName: 'Presenter 1',
+    defaultName: 'Abid Ali Leghari',
     role: 'Project Lead & Optical Concept',
     slideNumbers: [1, 2],
   },
   {
     id: 2,
-    defaultName: 'Presenter 2',
+    defaultName: 'Iqra Bhatti',
     role: 'Quantum Confinement & Materials',
     slideNumbers: [3, 4],
   },
   {
     id: 3,
-    defaultName: 'Presenter 3',
+    defaultName: 'Samreen',
     role: 'Exoplanet Spectroscopy & Doppler',
     slideNumbers: [5],
   },
   {
     id: 4,
-    defaultName: 'Presenter 4',
+    defaultName: 'Niaz Hussain',
     role: '3D Nanocrystal & Shader Engineer',
     slideNumbers: [6, 7],
   },
   {
     id: 5,
-    defaultName: 'Presenter 5',
+    defaultName: 'Gulfaraz Ahmed',
     role: 'Spectrum Analyzer & UI Systems',
     slideNumbers: [8],
   },
   {
     id: 6,
-    defaultName: 'Presenter 6',
+    defaultName: 'Antisha Zahra',
     role: 'Performance, Verification & Roadmap',
     slideNumbers: [9],
   },

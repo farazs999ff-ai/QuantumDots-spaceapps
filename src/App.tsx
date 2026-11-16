@@ -413,6 +413,12 @@ export default function App() {
                   Researcher
                 </div>
                 <h3 className="text-xl font-bold text-slate-50">Abid Ali Leghari</h3>
+                <a
+                  className="text-sm text-sky-400 hover:underline"
+                  href="mailto:abidalileghari8@gmail.com"
+                >
+                  abidalileghari8@gmail.com
+                </a>
                 <p className="text-sm text-slate-400 leading-relaxed">
                   Quantum Dot Confinement Research, Brus Mathematical Modeling &amp; Space
                   Exploration Spectroscopy Formulation.
@@ -426,6 +432,12 @@ export default function App() {
                 <h3 className="text-xl font-bold text-slate-50">
                   Gulfaraz Ahmed &amp; Niaz Hussain
                 </h3>
+                <a
+                  className="text-sm text-emerald-400 hover:underline"
+                  href="mailto:gulfaraz435175@gmail.com"
+                >
+                  gulfaraz435175@gmail.com
+                </a>
                 <p className="text-sm text-slate-400 leading-relaxed">
                   Full-Stack Web Engineering, Three.js 3D Optical Projection Architecture, Shaders,
                   and Interactive Spectroscopy Instrumentation.
